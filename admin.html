@@ -1,341 +1,469 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RYTC 管理员控制台</title>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui; background: #0a0f1e; color: #eef; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        h1 { margin-bottom: 20px; font-size: 28px; border-left: 4px solid #2a6df4; padding-left: 16px; }
-        .card { background: #141b2b; border-radius: 24px; padding: 20px; margin-bottom: 20px; border: 1px solid #2a3a5a; }
-        .card h2 { margin-bottom: 16px; font-size: 20px; color: #7aa9ff; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
-        button { background: #2a6df4; border: none; color: white; padding: 8px 16px; border-radius: 40px; cursor: pointer; font-weight: bold; margin-top: 8px; transition: 0.2s; }
-        button:hover { background: #1e54c4; }
-        input, select { background: #0f1622; border: 1px solid #2a3a5a; color: #eef; padding: 8px 12px; border-radius: 40px; width: 100%; margin: 8px 0; }
-        .status { background: #0f1622; border-radius: 20px; padding: 12px; font-family: monospace; font-size: 13px; margin-bottom: 16px; word-break: break-all; }
-        .danger { background: #8b3c3c; }
-        .warning { color: #ffaa66; }
-        hr { border-color: #2a3a5a; margin: 12px 0; }
-        .flex { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        .address-input { font-family: monospace; font-size: 12px; }
+    <title>团队建设 | Team Building - Raymond Chain</title>
+    <!-- 公共资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+    <!-- 主题配色 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#050A18',
+                        secondary: '#8B5CF6',
+                        accent: '#38BDF8',
+                        dark: '#030712',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+            }
+            .bg-glass {
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+            }
+            .card-hover {
+                @apply hover:border-accent/50 hover:shadow-lg hover:shadow-accent/20 transition-all duration-300;
+            }
+            .animate-float-slow {
+                animation: floatSlow 4s ease-in-out infinite;
+            }
+            /* 双语控制 */
+            .lang-zh { display: none; }
+            .lang-en { display: inline; }
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* 粒子背景 */
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
     </style>
 </head>
-<body>
-<div class="container">
-    <h1>🔐 RYTC 管理员控制台</h1>
-    <div class="card">
-        <div>🔌 连接钱包：</div>
-        <button id="connectBtn">连接 MetaMask</button>
-        <div id="walletStatus" class="status" style="margin-top: 10px;"></div>
-        <div id="ownerCheck" class="warning"></div>
-    </div>
-    <div id="adminPanel" style="display: none;">
-        <!-- 通用转账模块 -->
-        <div class="card">
-            <h2>💰 代币转账（向任意地址转入 RYTC）</h2>
-            <div class="flex">
-                <input type="text" id="transferTo" placeholder="接收地址" style="flex:2;">
-                <input type="number" id="transferAmount" placeholder="数量 (RYTC)" step="any" style="flex:1;">
-                <button id="doTransfer">转账</button>
+<body class="font-inter bg-primary text-gray-200 overflow-x-hidden">
+    <!-- 粒子背景 -->
+    <div id="particles-js"></div>
+
+    <!-- 顶部导航栏 -->
+    <header class="fixed w-full top-0 z-50">
+        <div class="bg-dark/80 bg-glass border-b border-white/10">
+            <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+                <!-- Logo 区域 -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-secondary to-accent flex items-center justify-center">
+                        <span class="text-white text-xl font-bold">R</span>
+                    </div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-accent to-secondary text-gradient">
+                        Raymond Chain
+                    </h1>
+                </div>
+                <!-- 功能按钮 -->
+                <div class="flex items-center gap-4">
+                    <button id="langSwitch" class="px-3 py-1 rounded border border-gray-600 hover:border-accent transition-colors">
+                        <span class="lang-zh">EN</span>
+                        <span class="lang-en">中文</span>
+                    </button>
+                    <!-- 首页外部链接 自行修改href -->
+                    <a href="https://www.rytc.net/raymond-rayc/index.html" target="_blank" class="px-5 py-2 rounded-full border border-accent text-accent hover:bg-accent/10 transition-all">
+                        <i class="fa fa-home mr-1"></i>
+                        <span class="lang-zh">首页</span>
+                        <span class="lang-en">Home</span>
+                    </a>
+                </div>
             </div>
         </div>
+    </header>
 
-        <div class="grid">
-            <!-- IDO 管理 -->
-            <div class="card">
-                <h2>📊 IDO 合约管理</h2>
-                <div>地址: <span id="idoAddr" class="address-input"></span></div>
-                <hr>
-                <div>开始时间戳: <input type="number" id="idoStart" placeholder="startTime"></div>
-                <div>结束时间戳: <input type="number" id="idoEnd" placeholder="endTime"></div>
-                <button id="setTimeBtn">修改时间</button>
-                <hr>
-                <div>兑换比例 (1 USDT = ? RYTC): <input type="number" id="idoRate" placeholder="rate"></div>
-                <button id="setRateBtn">修改比例</button>
-                <hr>
-                <div>向 IDO 存入 RYTC: <input type="number" id="idoDepositAmount" placeholder="数量 (RYTC)"></div>
-                <button id="idoDepositBtn">存入代币</button>
-                <hr>
-                <button id="idoWithdrawBtn" class="danger">提取剩余代币 (IDO结束后)</button>
+    <!-- 主体内容 -->
+    <main class="relative z-10 pt-28 pb-20 min-h-screen">
+        <div class="container mx-auto px-4">
+            <!-- 页面标题 -->
+            <div class="text-center mb-20">
+                <h2 class="text-[clamp(2rem,4vw,3.5rem)] font-bold mb-6">
+                    <span class="bg-gradient-to-r from-accent via-secondary to-pink-400 text-gradient">
+                        <span class="lang-zh">团队建设</span>
+                        <span class="lang-en">Team Building</span>
+                    </span>
+                </h2>
+                <p class="text-gray-400 text-lg max-w-3xl mx-auto">
+                    <span class="lang-zh">汇聚全球区块链精英，携手共建去中心化数字未来</span>
+                    <span class="lang-en">Gather global blockchain elites to build a decentralized digital future together</span>
+                </p>
             </div>
 
-            <!-- 挖矿管理 -->
-            <div class="card">
-                <h2>⛏️ 挖矿合约管理</h2>
-                <div>地址: <span id="miningAddr" class="address-input"></span></div>
-                <hr>
-                <div>矿机类型 ID (0-6): <input type="number" id="minerTypeId" placeholder="0~6"></div>
-                <div>启用/禁用: <select id="minerEnabled"><option value="true">启用</option><option value="false">禁用</option></select></div>
-                <button id="updateMinerStatusBtn">修改矿机状态</button>
-                <hr>
-                <div>每日领取上限: <input type="number" id="maxClaimTimes" placeholder="当前值"></div>
-                <button id="setMaxClaimBtn">修改</button>
-                <hr>
-                <div>向挖矿合约转入 RYTC: <input type="number" id="miningFundAmount" placeholder="数量"></div>
-                <button id="fundMiningBtn">转入奖励池</button>
+            <!-- 第一模块：团队理念 -->
+            <section class="mb-24">
+                <div class="max-w-4xl mx-auto bg-dark/60 bg-glass p-8 rounded-2xl border border-gray-800 card-hover">
+                    <h3 class="text-2xl font-bold mb-4 text-accent">
+                        <span class="lang-zh">团队理念</span>
+                        <span class="lang-en">Team Philosophy</span>
+                    </h3>
+                    <p class="text-gray-300 leading-relaxed mb-4">
+                        <span class="lang-zh">我们秉持开放、共赢、创新、自治的核心理念，吸纳来自全球各地的技术专家、运营人才、市场精英。以技术为根基，以生态为导向，凝聚每一份力量，推动RAYC生态持续发展。</span>
+                        <span class="lang-en">We adhere to the core concepts of openness, win-win, innovation and autonomy. We recruit technical experts, operation specialists and market talents from all over the world. Based on technology and oriented by ecology, we gather all forces to promote the sustainable development of RAYC ecosystem.</span>
+                    </p>
+                    <p class="text-gray-300 leading-relaxed">
+                        <span class="lang-zh">去中心化的团队架构，扁平化管理模式，让每一位成员都能发挥价值，共同参与生态决策与建设。</span>
+                        <span class="lang-en">Decentralized team structure and flat management enable every member to exert value and participate in ecological decision-making and construction.</span>
+                    </p>
+                </div>
+            </section>
+
+            <!-- 第二模块：核心团队 -->
+            <section class="mb-24">
+                <h3 class="text-2xl font-bold text-center mb-12">
+                    <span class="bg-gradient-to-r from-accent to-secondary text-gradient">
+                        <span class="lang-zh">核心团队</span>
+                        <span class="lang-en">Core Team</span>
+                    </span>
+                </h3>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- 成员1 -->
+                    <div class="bg-dark/60 bg-glass p-6 rounded-2xl border border-gray-800 card-hover animate-float-slow">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-r from-accent to-secondary mb-4 flex items-center justify-center">
+                            <i class="fa fa-user text-2xl text-white"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">
+                            <span class="lang-zh">创始人 & 技术负责人</span>
+                            <span class="lang-en">Founder & CTO</span>
+                        </h4>
+                        <p class="text-gray-400 text-sm">
+                            <span class="lang-zh">深耕区块链底层技术十余年，主导公链架构设计与生态规划</span>
+                            <span class="lang-en">More than 10 years of experience in underlying blockchain technology, leading public chain design and ecosystem planning</span>
+                        </p>
+                    </div>
+                    <!-- 成员2 -->
+                    <div class="bg-dark/60 bg-glass p-6 rounded-2xl border border-gray-800 card-hover animate-float-slow" style="animation-delay: 0.5s">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-r from-secondary to-pink-400 mb-4 flex items-center justify-center">
+                            <i class="fa fa-user text-2xl text-white"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">
+                            <span class="lang-zh">生态运营总监</span>
+                            <span class="lang-en">ECO Director</span>
+                        </h4>
+                        <p class="text-gray-400 text-sm">
+                            <span class="lang-zh">负责全球生态拓展、社区治理、品牌建设与市场布局</span>
+                            <span class="lang-en">Responsible for global ecosystem expansion, community governance, brand building and market layout</span>
+                        </p>
+                    </div>
+                    <!-- 成员3 -->
+                    <div class="bg-dark/60 bg-glass p-6 rounded-2xl border border-gray-800 card-hover animate-float-slow" style="animation-delay: 1s">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-r from-pink-400 to-accent mb-4 flex items-center justify-center">
+                            <i class="fa fa-user text-2xl text-white"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">
+                            <span class="lang-zh">NFT & 元宇宙负责人</span>
+                            <span class="lang-en">NFT & Metaverse Manager</span>
+                        </h4>
+                        <p class="text-gray-400 text-sm">
+                            <span class="lang-zh">专注NFT研发、数字藏品、元宇宙场景落地与应用开发</span>
+                            <span class="lang-en">Focus on NFT development, digital collectibles, metaverse scenario implementation and application development</span>
+                        </p>
+                    </div>
+                    <!-- 成员4 -->
+                    <div class="bg-dark/60 bg-glass p-6 rounded-2xl border border-gray-800 card-hover">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-r from-accent to-secondary mb-4 flex items-center justify-center">
+                            <i class="fa fa-user text-2xl text-white"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">
+                            <span class="lang-zh">安全审计主管</span>
+                            <span class="lang-en">Security Audit Supervisor</span>
+                        </h4>
+                        <p class="text-gray-400 text-sm">
+                            <span class="lang-zh">全网安全防护、智能合约审计、风险管控与漏洞检测</span>
+                            <span class="lang-en">Network security protection, smart contract audit, risk control and vulnerability detection</span>
+                        </p>
+                    </div>
+                    <!-- 成员5 -->
+                    <div class="bg-dark/60 bg-glass p-6 rounded-2xl border border-gray-800 card-hover">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-r from-secondary to-pink-400 mb-4 flex items-center justify-center">
+                            <i class="fa fa-user text-2xl text-white"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">
+                            <span class="lang-zh">全球社区主管</span>
+                            <span class="lang-en">Global Community Manager</span>
+                        </h4>
+                        <p class="text-gray-400 text-sm">
+                            <span class="lang-zh">统筹全球社区运营、用户维护、线上线下活动策划</span>
+                            <span class="lang-en">Overall planning of global community operation, user maintenance and event planning</span>
+                        </p>
+                    </div>
+                    <!-- 成员6 -->
+                    <div class="bg-dark/60 bg-glass p-6 rounded-2xl border border-gray-800 card-hover">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-r from-pink-400 to-accent mb-4 flex items-center justify-center">
+                            <i class="fa fa-user text-2xl text-white"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">
+                            <span class="lang-zh">海外市场总监</span>
+                            <span class="lang-en">Overseas Marketing Director</span>
+                        </h4>
+                        <p class="text-gray-400 text-sm">
+                            <span class="lang-zh">海外渠道拓展、国际合作、多地区市场落地推进</span>
+                            <span class="lang-en">Overseas channel expansion, international cooperation and regional market promotion</span>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第三模块：全球分部 -->
+            <section class="mb-24">
+                <h3 class="text-2xl font-bold text-center mb-12">
+                    <span class="bg-gradient-to-r from-accent to-secondary text-gradient">
+                        <span class="lang-zh">全球团队分部</span>
+                        <span class="lang-en">Global Branches</span>
+                    </span>
+                </h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-dark/60 bg-glass p-6 rounded-2xl border border-gray-800 card-hover flex items-start gap-4">
+                        <i class="fa fa-map-marker text-2xl text-accent mt-1"></i>
+                        <div>
+                            <h4 class="text-lg font-bold mb-2">Asia Pacific | 亚太分部</h4>
+                            <p class="text-gray-400 text-sm">
+                                <span class="lang-zh">覆盖东亚、东南亚，负责技术研发、社区运营与本地生态落地</span>
+                                <span class="lang-en">Cover East & Southeast Asia, responsible for R&D, community operation and local ecosystem implementation</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-dark/60 bg-glass p-6 rounded-2xl border border-gray-800 card-hover flex items-start gap-4">
+                        <i class="fa fa-map-marker text-2xl text-secondary mt-1"></i>
+                        <div>
+                            <h4 class="text-lg font-bold mb-2">Europe | 欧洲分部</h4>
+                            <p class="text-gray-400 text-sm">
+                                <span class="lang-zh">专注欧洲市场拓展、合规对接、海外品牌推广</span>
+                                <span class="lang-en">Focus on European market expansion, compliance docking and overseas brand promotion</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-dark/60 bg-glass p-6 rounded-2xl border border-gray-800 card-hover flex items-start gap-4">
+                        <i class="fa fa-map-marker text-2xl text-pink-400 mt-1"></i>
+                        <div>
+                            <h4 class="text-lg font-bold mb-2">North America | 北美分部</h4>
+                            <p class="text-gray-400 text-sm">
+                                <span class="lang-zh">前沿技术合作、投融资对接、国际资源整合</span>
+                                <span class="lang-en">Cutting-edge technology cooperation, investment and financing docking, international resource integration</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-dark/60 bg-glass p-6 rounded-2xl border border-gray-800 card-hover flex items-start gap-4">
+                        <i class="fa fa-map-marker text-2xl text-accent mt-1"></i>
+                        <div>
+                            <h4 class="text-lg font-bold mb-2">Oceania & Middle East | 大洋洲 & 中东分部</h4>
+                            <p class="text-gray-400 text-sm">
+                                <span class="lang-zh">区域生态建设、本地社区维护与商务合作</span>
+                                <span class="lang-en">Regional ecosystem construction, local community maintenance and business cooperation</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第四模块：招贤纳士 -->
+            <section>
+                <div class="max-w-4xl mx-auto bg-gradient-to-r from-accent/10 to-secondary/10 bg-glass p-8 rounded-2xl border border-accent/30 card-hover text-center">
+                    <h3 class="text-2xl font-bold mb-4">
+                        <span class="lang-zh">招贤纳士 · 携手同行</span>
+                        <span class="lang-en">Join Us · Walk Together</span>
+                    </h3>
+                    <p class="text-gray-300 mb-6">
+                        <span class="lang-zh">我们持续面向全球招募区块链技术、运营、市场、设计等各类人才，期待你的加入</span>
+                        <span class="lang-en">We are recruiting talents in blockchain technology, operation, marketing and design worldwide. Looking forward to you joining us.</span>
+                    </p>
+                    <a href="#" target="_blank" class="inline-block px-8 py-3 rounded-full bg-gradient-to-r from-accent to-secondary text-white font-semibold hover:shadow-lg hover:shadow-accent/20 transition-all">
+                        <span class="lang-zh">了解岗位</span>
+                        <span class="lang-en">View Positions</span>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- 底部（与原网站完全一致） -->
+    <footer class="bg-dark pt-20 pb-10 border-t border-gray-800 relative z-10">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-10 mb-10">
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-secondary to-accent flex items-center justify-center">
+                            <span class="text-white text-xl font-bold">R</span>
+                        </div>
+                        <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 text-gradient">Raymond Chain</h2>
+                    </div>
+                    <p class="text-gray-400">
+                        <span class="lang-zh">构建未来区块链生态，创造数字价值新时代</span>
+                        <span class="lang-en">Build future blockchain ecosystem, create new digital value era.</span>
+                    </p>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-bold mb-4">
+                        <span class="lang-zh">快速链接</span>
+                        <span class="lang-en">Quick Links</span>
+                    </h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">首页</span>
+                            <span class="lang-en">Home</span>
+                        </a></li>
+                        <li><a href="#" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">关于我们</span>
+                            <span class="lang-en">About Us</span>
+                        </a></li>
+                        <li><a href="#" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">RAYC生态</span>
+                            <span class="lang-en">RAYC Ecosystem</span>
+                        </a></li>
+                        <li><a href="#" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">技术优势</span>
+                            <span class="lang-en">Tech Advantages</span>
+                        </a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-bold mb-4">
+                        <span class="lang-zh">资源中心</span>
+                        <span class="lang-en">Resources</span>
+                    </h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" target="_blank" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">白皮书</span>
+                            <span class="lang-en">Whitepaper</span>
+                        </a></li>
+                        <li><a href="#" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">开发者文档</span>
+                            <span class="lang-en">Docs</span>
+                        </a></li>
+                        <li><a href="#" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">新闻动态</span>
+                            <span class="lang-en">News</span>
+                        </a></li>
+                        <li><a href="#" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">常见问题</span>
+                            <span class="lang-en">FAQ</span>
+                        </a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-bold mb-4">
+                        <span class="lang-zh">联系我们</span>
+                        <span class="lang-en">Contact Us</span>
+                    </h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <i class="fa fa-envelope text-accent"></i>
+                            <span>contact@raymondchain.com</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fa fa-map-marker text-accent"></i>
+                            <span>
+                                <span class="lang-zh">全球区块链科技园区</span>
+                                <span class="lang-en">Global Blockchain Tech Park</span>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
             </div>
 
-            <!-- 团队合约管理 -->
-            <div class="card">
-                <h2>👥 团队奖励合约</h2>
-                <div>地址: <span id="teamAddr" class="address-input"></span></div>
-                <hr>
-                <div>修改级别奖励比例 (T1~T7, 基点: 10% = 1000)</div>
-                <div>级别: <select id="levelIndex"><option value="1">T1</option><option value="2">T2</option><option value="3">T3</option><option value="4">T4</option><option value="5">T5</option><option value="6">T6</option><option value="7">T7</option></select></div>
-                <div>新比例: <input type="number" id="newRate" placeholder="基点"></div>
-                <button id="setLevelRateBtn">修改比例</button>
-                <hr>
-                <div>向团队合约转入 RYTC: <input type="number" id="teamFundAmount" placeholder="数量"></div>
-                <button id="fundTeamBtn">转入</button>
-            </div>
-
-            <!-- 公会合约管理 -->
-            <div class="card">
-                <h2>🏛️ 公会分红合约</h2>
-                <div>地址: <span id="guildAddr" class="address-input"></span></div>
-                <hr>
-                <div>公会 ID (1-200): <input type="number" id="guildId" placeholder="公会ID"></div>
-                <div>设置质押总额 (RYTC): <input type="number" id="guildStake" placeholder="质押额"></div>
-                <button id="setGuildStakeBtn">设置质押额</button>
-                <hr>
-                <div>更换会长: <input type="text" id="newOwner" placeholder="新会长地址"></div>
-                <button id="changeGuildOwnerBtn">更换</button>
-                <hr>
-                <div>开关公会: <select id="guildActive"><option value="true">激活</option><option value="false">关闭</option></select></div>
-                <button id="setGuildActiveBtn">修改状态</button>
-                <hr>
-                <div>修改分红比例 (基点): <input type="number" id="dividendRate" placeholder="当前值"></div>
-                <button id="setDividendRateBtn">修改分红比例</button>
-                <hr>
-                <div>向公会合约转入 RYTC: <input type="number" id="guildFundAmount" placeholder="数量"></div>
-                <button id="fundGuildBtn">转入分红池</button>
+            <hr class="border-gray-800 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex gap-4">
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-blue-500 transition-all" title="Twitter">
+                        <i class="fa fa-twitter text-white"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-purple-500 transition-all" title="Telegram">
+                        <i class="fa fa-telegram text-white"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-red-500 transition-all" title="Youtube">
+                        <i class="fa fa-youtube-play text-white"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-blue-600 transition-all" title="Linkedin">
+                        <i class="fa fa-linkedin text-white"></i>
+                    </a>
+                </div>
+                <p class="text-gray-500 text-sm">© 2025 Raymond Chain. All Rights Reserved.</p>
             </div>
         </div>
-    </div>
-</div>
+    </footer>
 
-<script>
-    // ==================== 合约地址配置 ====================
-    const CONFIG = {
-        token: "0xfab2Cc41282E20f98d1470802Ac51450EB8E9906",
-        ido: "0xf712A963E1628C70f1Cb5Ac2b0fe388d665A7588",
-        mining: "0x737E07277CcFF609EC3Ff9FabE5AD2Ab509D97F5",
-        team: "0xF11Da2FAa09aB297A08a5833D5A3ec7A35326983",
-        guild: "0x8EC9689CF57F83e5Eece439bD34F0f7010DA3a77",
-        usdt: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
-    };
-
-    // ABI 定义
-    const TOKEN_ABI = [
-        "function transfer(address to, uint256 amount) returns (bool)",
-        "function balanceOf(address) view returns (uint256)",
-        "function decimals() view returns (uint8)"
-    ];
-    const IDO_ABI = [
-        "function owner() view returns (address)",
-        "function setTime(uint256 start, uint256 end)",
-        "function setRate(uint256 _rate)",
-        "function depositTokens(uint256 amount)",
-        "function withdrawRemainingTokens()",
-        "function startTime() view returns (uint256)",
-        "function endTime() view returns (uint256)",
-        "function rate() view returns (uint256)"
-    ];
-    const MINING_ABI = [
-        "function owner() view returns (address)",
-        "function updateMinerType(uint256 id, uint32 daysDuration, uint256 minStake, uint256 maxStake, uint256 totalRatio, uint256 maxPurchases, uint256 totalQtyLimit, bool enabled)",
-        "function setMaxDailyClaimTimes(uint256 _max)",
-        "function minerTypes(uint256) view returns (uint32,uint256,uint256,uint256,uint256,uint256,uint256,bool)"
-    ];
-    const TEAM_ABI = [
-        "function owner() view returns (address)",
-        "function setLevelRewardRate(uint256 levelIndex, uint256 rate)",
-        "function depositRewardTokens(uint256 amount)"
-    ];
-    const GUILD_ABI = [
-        "function owner() view returns (address)",
-        "function setGuildStake(uint256 guildId, uint256 stake)",
-        "function changeGuildOwner(uint256 guildId, address newOwner)",
-        "function setGuildActive(uint256 guildId, bool active)",
-        "function setDividendRate(uint256 _rate)"
-    ];
-
-    let provider, signer, userAddress;
-    let tokenContract, idoContract, miningContract, teamContract, guildContract;
-
-    document.getElementById('connectBtn').onclick = async () => {
-        if (!window.ethereum) return alert('请安装 MetaMask');
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        userAddress = await signer.getAddress();
-        document.getElementById('walletStatus').innerHTML = `连接地址: ${userAddress}`;
-        
-        // 初始化合约
-        tokenContract = new ethers.Contract(CONFIG.token, TOKEN_ABI, signer);
-        idoContract = new ethers.Contract(CONFIG.ido, IDO_ABI, signer);
-        miningContract = new ethers.Contract(CONFIG.mining, MINING_ABI, signer);
-        teamContract = new ethers.Contract(CONFIG.team, TEAM_ABI, signer);
-        guildContract = new ethers.Contract(CONFIG.guild, GUILD_ABI, signer);
-
-        // 使用 IDO 合约的 owner 验证管理员权限
-        try {
-            const idoOwner = await idoContract.owner();
-            if (idoOwner.toLowerCase() === userAddress.toLowerCase()) {
-                document.getElementById('ownerCheck').innerHTML = '✅ 你是合约所有者，管理员面板已解锁';
-                document.getElementById('adminPanel').style.display = 'block';
-                document.getElementById('idoAddr').innerText = CONFIG.ido;
-                document.getElementById('miningAddr').innerText = CONFIG.mining;
-                document.getElementById('teamAddr').innerText = CONFIG.team;
-                document.getElementById('guildAddr').innerText = CONFIG.guild;
+    <!-- 双语切换 & 粒子背景JS -->
+    <script>
+        // 双语切换
+        const langSwitch = document.getElementById('langSwitch');
+        let isChinese = false;
+        function toggleLanguage() {
+            const zhDom = document.querySelectorAll('.lang-zh');
+            const enDom = document.querySelectorAll('.lang-en');
+            isChinese = !isChinese;
+            if (isChinese) {
+                zhDom.forEach(item => item.style.display = 'inline');
+                enDom.forEach(item => item.style.display = 'none');
+                document.documentElement.lang = 'zh-CN';
             } else {
-                document.getElementById('ownerCheck').innerHTML = '⛔ 你不是合约所有者，无法使用管理功能';
-                document.getElementById('adminPanel').style.display = 'none';
+                zhDom.forEach(item => item.style.display = 'none');
+                enDom.forEach(item => item.style.display = 'inline');
+                document.documentElement.lang = 'en';
             }
-        } catch (err) {
-            console.error(err);
-            document.getElementById('ownerCheck').innerHTML = '⚠️ 无法验证所有者，请检查合约地址是否正确';
         }
-    };
+        langSwitch.addEventListener('click', toggleLanguage);
 
-    // 通用转账
-    document.getElementById('doTransfer').onclick = async () => {
-        let to = document.getElementById('transferTo').value.trim();
-        let amountRYTC = parseFloat(document.getElementById('transferAmount').value);
-        if (!to || !amountRYTC) return alert('填写完整');
-        let decimals = await tokenContract.decimals();
-        let amountWei = ethers.utils.parseUnits(amountRYTC.toString(), decimals);
-        let tx = await tokenContract.transfer(to, amountWei);
-        await tx.wait();
-        alert('转账成功');
-    };
-
-    // IDO 管理
-    document.getElementById('setTimeBtn').onclick = async () => {
-        let start = document.getElementById('idoStart').value;
-        let end = document.getElementById('idoEnd').value;
-        if (!start || !end) return alert('填写时间戳');
-        let tx = await idoContract.setTime(start, end);
-        await tx.wait();
-        alert('时间修改成功');
-    };
-    document.getElementById('setRateBtn').onclick = async () => {
-        let rate = document.getElementById('idoRate').value;
-        if (!rate) return;
-        let tx = await idoContract.setRate(rate);
-        await tx.wait();
-        alert('比例修改成功');
-    };
-    document.getElementById('idoDepositBtn').onclick = async () => {
-        let amount = parseFloat(document.getElementById('idoDepositAmount').value);
-        if (!amount) return;
-        let decimals = await tokenContract.decimals();
-        let amountWei = ethers.utils.parseUnits(amount.toString(), decimals);
-        let approveTx = await tokenContract.approve(CONFIG.ido, amountWei);
-        await approveTx.wait();
-        let tx = await idoContract.depositTokens(amountWei);
-        await tx.wait();
-        alert('存入成功');
-    };
-    document.getElementById('idoWithdrawBtn').onclick = async () => {
-        if (confirm('确定提取IDO合约剩余代币？')) {
-            let tx = await idoContract.withdrawRemainingTokens();
-            await tx.wait();
-            alert('提取成功');
-        }
-    };
-
-    // 挖矿管理
-    document.getElementById('updateMinerStatusBtn').onclick = async () => {
-        let typeId = parseInt(document.getElementById('minerTypeId').value);
-        let enabled = document.getElementById('minerEnabled').value === 'true';
-        let mt = await miningContract.minerTypes(typeId);
-        let tx = await miningContract.updateMinerType(typeId, mt[0], mt[1], mt[2], mt[3], mt[4], mt[5], enabled);
-        await tx.wait();
-        alert('修改成功');
-    };
-    document.getElementById('setMaxClaimBtn').onclick = async () => {
-        let max = parseInt(document.getElementById('maxClaimTimes').value);
-        if (!max) return;
-        let tx = await miningContract.setMaxDailyClaimTimes(max);
-        await tx.wait();
-        alert('设置成功');
-    };
-    document.getElementById('fundMiningBtn').onclick = async () => {
-        let amount = parseFloat(document.getElementById('miningFundAmount').value);
-        if (!amount) return;
-        let decimals = await tokenContract.decimals();
-        let amountWei = ethers.utils.parseUnits(amount.toString(), decimals);
-        let tx = await tokenContract.transfer(CONFIG.mining, amountWei);
-        await tx.wait();
-        alert('转入挖矿合约成功');
-    };
-
-    // 团队合约
-    document.getElementById('setLevelRateBtn').onclick = async () => {
-        let levelIdx = parseInt(document.getElementById('levelIndex').value);
-        let rate = parseInt(document.getElementById('newRate').value);
-        if (!rate) return;
-        let tx = await teamContract.setLevelRewardRate(levelIdx, rate);
-        await tx.wait();
-        alert('比例修改成功');
-    };
-    document.getElementById('fundTeamBtn').onclick = async () => {
-        let amount = parseFloat(document.getElementById('teamFundAmount').value);
-        if (!amount) return;
-        let decimals = await tokenContract.decimals();
-        let amountWei = ethers.utils.parseUnits(amount.toString(), decimals);
-        let tx = await tokenContract.transfer(CONFIG.team, amountWei);
-        await tx.wait();
-        alert('转入团队合约成功');
-    };
-
-    // 公会合约
-    document.getElementById('setGuildStakeBtn').onclick = async () => {
-        let guildId = parseInt(document.getElementById('guildId').value);
-        let stake = parseFloat(document.getElementById('guildStake').value);
-        if (!guildId || !stake) return;
-        let decimals = await tokenContract.decimals();
-        let stakeWei = ethers.utils.parseUnits(stake.toString(), decimals);
-        let tx = await guildContract.setGuildStake(guildId, stakeWei);
-        await tx.wait();
-        alert('质押额设置成功');
-    };
-    document.getElementById('changeGuildOwnerBtn').onclick = async () => {
-        let guildId = parseInt(document.getElementById('guildId').value);
-        let newOwner = document.getElementById('newOwner').value.trim();
-        if (!guildId || !newOwner) return;
-        let tx = await guildContract.changeGuildOwner(guildId, newOwner);
-        await tx.wait();
-        alert('会长更换成功');
-    };
-    document.getElementById('setGuildActiveBtn').onclick = async () => {
-        let guildId = parseInt(document.getElementById('guildId').value);
-        let active = document.getElementById('guildActive').value === 'true';
-        let tx = await guildContract.setGuildActive(guildId, active);
-        await tx.wait();
-        alert('公会状态修改成功');
-    };
-    document.getElementById('setDividendRateBtn').onclick = async () => {
-        let rate = parseInt(document.getElementById('dividendRate').value);
-        if (!rate) return;
-        let tx = await guildContract.setDividendRate(rate);
-        await tx.wait();
-        alert('分红比例修改成功');
-    };
-    document.getElementById('fundGuildBtn').onclick = async () => {
-        let amount = parseFloat(document.getElementById('guildFundAmount').value);
-        if (!amount) return;
-        let decimals = await tokenContract.decimals();
-        let amountWei = ethers.utils.parseUnits(amount.toString(), decimals);
-        let tx = await tokenContract.transfer(CONFIG.guild, amountWei);
-        await tx.wait();
-        alert('转入公会合约成功');
-    };
-</script>
+        // 粒子背景初始化
+        particlesJS("particles-js", {
+            particles: {
+                number: { value: 60 },
+                color: { value: "#38BDF8" },
+                shape: { type: "circle" },
+                opacity: { value: 0.4 },
+                size: { value: 2 },
+                line_linked: {
+                    enable: true,
+                    distance: 130,
+                    color: "#8B5CF6",
+                    opacity: 0.2,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 1.2,
+                    random: true,
+                    straight: false,
+                    out_mode: "out"
+                }
+            },
+            interactivity: {
+                detect_on: "canvas",
+                events: {
+                    onhover: { enable: true, mode: "grab" }
+                }
+            },
+            retina_detect: true
+        });
+    </script>
 </body>
 </html>
